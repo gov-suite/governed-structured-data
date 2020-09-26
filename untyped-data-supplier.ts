@@ -4,17 +4,12 @@ export interface UntypedDataSupplierEntryContext {
   readonly isUntypedDataSupplierEntryContext: true;
 }
 
-export interface UntypedDataSupplierContext<
-  C extends UntypedDataSupplierEntryContext,
-> {
-  readonly onEntry: (ctx: C) => void;
+export interface UntypedDataSupplierContext {
+  readonly onEntry: (ctx: UntypedDataSupplierEntryContext) => void;
 }
 
-export interface UntypedDataSupplier<
-  EC extends UntypedDataSupplierEntryContext,
-  SC extends UntypedDataSupplierContext<EC>,
-> {
-  readonly forEach: (ctx: SC) => void;
+export interface UntypedDataSupplier {
+  readonly forEach: (ctx: UntypedDataSupplierContext) => void;
 }
 
 export interface JsonSupplierEntryContext
@@ -51,10 +46,7 @@ export interface UntypedDataSupplierEntryContextGuesser {
 export class JsonSupplierEntryContextGuesser {
   static readonly singleton = new JsonSupplierEntryContextGuesser();
 
-  guessFromFile(
-    fc: FileContext,
-  ): UntypedDataSupplierEntryContext | undefined {
-    if (fc.lastFileExtn != "json") return undefined;
+  jsonFileContext(fc: FileContext): JsonSupplierEntryContext & FileContext {
     const jsonValue = JSON.parse(Deno.readTextFileSync(fc.absFileName));
     const jseCtx: JsonSupplierEntryContext & FileContext = {
       isUntypedDataSupplierEntryContext: true,
@@ -62,6 +54,14 @@ export class JsonSupplierEntryContextGuesser {
       ...fc,
     };
     return jseCtx;
+  }
+
+  guessFromFile(
+    fc: FileContext,
+  ): UntypedDataSupplierEntryContext | undefined {
+    if (fc.lastFileExtn == "json") {
+      return this.jsonFileContext(fc);
+    }
   }
 }
 
@@ -74,25 +74,43 @@ export function isGlobWalkEntryContext(o: unknown): o is GlobWalkEntryContext {
   return o && typeof o === "object" && "isGlobWalkEntryContext" in o;
 }
 
-export class FileSystemGlobSupplier implements
-  UntypedDataSupplier<
-    UntypedDataSupplierEntryContext,
-    UntypedDataSupplierContext<UntypedDataSupplierEntryContext>
-  > {
+export interface FileSystemGlobSupplierOptions {
+  guessers: UntypedDataSupplierEntryContextGuesser[];
+  onNoSourcesFound: (sourceSpec: string) => void;
+  onNoGuesses: (fc: FileContext) => UntypedDataSupplierEntryContext | undefined;
+}
+
+export function defaultFileSystemGlobSupplierOptions(): FileSystemGlobSupplierOptions {
+  return {
+    onNoSourcesFound: (spec): void => {
+      console.log(`No sources found for spec "${spec}"`);
+    },
+    guessers: [
+      JsonSupplierEntryContextGuesser.singleton,
+    ],
+    onNoGuesses: (
+      fc: FileContext,
+    ): UntypedDataSupplierEntryContext => {
+      return JsonSupplierEntryContextGuesser.singleton.jsonFileContext(fc);
+    },
+  };
+}
+
+export class FileSystemGlobSupplier implements UntypedDataSupplier {
   readonly isUntypedDataSupplier = true;
   readonly isJsonSupplier = true;
 
   constructor(
     readonly sourceSpec: string,
-    readonly guessers: UntypedDataSupplierEntryContextGuesser[] = [
-      JsonSupplierEntryContextGuesser.singleton,
-    ],
+    readonly options: FileSystemGlobSupplierOptions =
+      defaultFileSystemGlobSupplierOptions(),
   ) {
   }
 
   forEach(
-    udsCtx: UntypedDataSupplierContext<UntypedDataSupplierEntryContext>,
+    udsCtx: UntypedDataSupplierContext,
   ): void {
+    let handled = 0;
     for (const we of fs.expandGlobSync(this.sourceSpec)) {
       const dotPosition = we.name.indexOf(".");
       const fileNameWithoutExtn = dotPosition === -1
@@ -119,12 +137,30 @@ export class FileSystemGlobSupplier implements
         isGlobWalkEntryContext: true,
         walkEntry: we,
       };
-      for (const guesser of this.guessers) {
+
+      let guessedCount = 0;
+      for (const guesser of this.options.guessers) {
         const guessed = guesser.guessFromFile(gweCtx);
         if (guessed) {
           udsCtx.onEntry(guessed);
+          guessedCount++;
         }
       }
+
+      if (guessedCount == 0 && this.options.onNoGuesses) {
+        const defaultHandler = this.options.onNoGuesses(gweCtx);
+        if (defaultHandler) {
+          udsCtx.onEntry(defaultHandler);
+        } else {
+          console.log(`Unable to handle ${gweCtx}`);
+        }
+      }
+
+      handled++;
+    }
+
+    if (handled == 0) {
+      this.options.onNoSourcesFound(this.sourceSpec);
     }
   }
 }

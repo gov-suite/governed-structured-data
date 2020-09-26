@@ -80,6 +80,11 @@ export interface Expected {
 
 Here's how we can easily validate it:
 
+```bash
+deno-run gsdctl json-to-ts json-module.test-valid.json.golden --type-import="./json-module.test-schema.ts" --type=Expected 
+```
+
+
 ```typescript
 const validJsonModule = new JsonModule(
   {
