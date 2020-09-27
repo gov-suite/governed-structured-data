@@ -18,14 +18,13 @@ Usage:
   gdctl inspect
   gdctl json emit [<emit-dest>]
   gdctl json sync [--dry-run] [--overwrite]
-  gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--validate] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
+  gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
   gdctl -h | --help
   gdctl --version
 
 Options:
   <emit-dest>             The name of the file to emit, if it's just ".json" use same name as active file but force extension
   <json-src>              JSON single local file name or glob (like "*.json" or "**/*.json")
-  --validate              Validate what's emitted
   --overwrite             If the file already exists, it's OK to replace it
   --type-import=<url>     The import where the primary TypeScript type definition is found
   --type=<symbol>         The TypeScript symbol that should be assigned the primary type
@@ -138,8 +137,8 @@ export interface TypicalControllerOptions {
   readonly dataInstance: unknown;
   readonly retype?: udt.JsonRetyper;
   readonly inspectInstance: () => unknown;
-  readonly destFileName?: (given: string) => string;
   readonly defaultJsonExtn: string;
+  readonly onAfterEmit?: (result: udt.StructuredDataTyperResult) => void;
 }
 
 export function defaultTypicalControllerOptions(
@@ -158,6 +157,7 @@ export function defaultTypicalControllerOptions(
         return "[GSDC-00-100] No inspection content available.";
       }),
     defaultJsonExtn: override?.defaultJsonExtn || ".auto.json",
+    onAfterEmit: override?.onAfterEmit,
   };
 }
 
@@ -184,11 +184,10 @@ export class TypicalController {
   }
 
   jsonType(
-    { verbose, jsonSrcSpec, typer, validate, dryRun, overwrite }: {
+    { verbose, jsonSrcSpec, typer, dryRun, overwrite }: {
       jsonSrcSpec: string;
       typer: udt.JsonTyper;
       verbose?: boolean;
-      validate?: boolean;
       overwrite?: boolean;
       dryRun?: boolean;
     },
@@ -227,17 +226,12 @@ export class TypicalController {
       },
       onAfterEmit: (result: udt.StructuredDataTyperResult): void => {
         if (udt.isFileDestinationResult(result)) {
-          // import requires relative paths
           const destRel = "." + path.SEP + result.destFileNameRel(Deno.cwd());
           if (verbose && !dryRun) {
             console.log(destRel);
           }
-          if (validate && !dryRun) {
-            console.log(`Trying Deno import(${destRel})...`);
-            // deno-lint-ignore no-undef
-            import(destRel);
-          }
         }
+        if (this.options.onAfterEmit) this.options.onAfterEmit(result);
       },
     });
   }
@@ -284,13 +278,11 @@ export async function jsonTyperCliHandler(
       ctx.calledFromMetaURL,
       ctx.tco,
     );
-    const { "<json-src>": jsonSrcSpec, "--validate": validate } =
-      ctx.cliOptions;
+    const { "<json-src>": jsonSrcSpec } = ctx.cliOptions;
     ctl.jsonType({
       jsonSrcSpec: jsonSrcSpec?.toString() || "*.json",
       typer: new CliJsonTyper(ctx.cliOptions),
       verbose: ctx.isVerbose || ctx.isDryRun,
-      validate: validate ? true : false,
       overwrite: ctx.shouldOverwrite,
     });
     return true;
