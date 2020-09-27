@@ -108,11 +108,24 @@ export class CliArgsEmitter implements JsonEmitter {
 
   emitJSON(content: unknown | EmittableContent): string | void {
     if (Deno.args && Deno.args.length > 0) {
-      return new FileSystemEmitter(
-        Deno.args[0] === ".json"
-          ? forceExtension(this.defaultJsonExtn, this.fromSrcModuleURL)
-          : Deno.args[0],
-      ).emitJSON(content);
+      switch (Deno.args[0]) {
+        case ".json":
+          return new FileSystemEmitter(
+            forceExtension(this.defaultJsonExtn, this.fromSrcModuleURL),
+          ).emitJSON(content);
+
+        case "inspect":
+          console.dir(this.retype);
+          return;
+
+        case "retype":
+        case "sync":
+          console.log("TODO: retyping/syncing not supported yet");
+          return;
+
+        default:
+          return new FileSystemEmitter(Deno.args[0]).emitJSON(content);
+      }
     } else {
       StdOutEmitter.singleton.emitJSON(content);
     }
