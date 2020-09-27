@@ -1,4 +1,5 @@
 import { docopt, fs } from "./deps.ts";
+export { docopt } from "./deps.ts";
 
 //TODO: generalize this so it will work for any repo
 const repoVersionRegExp =
