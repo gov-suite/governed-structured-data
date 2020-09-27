@@ -25,6 +25,7 @@ Usage:
 Options:
   <emit-dest>             The name of the file to emit, if it's just ".json" use same name as active file but force extension
   <json-src>              JSON single local file name or glob (like "*.json" or "**/*.json")
+  --validate              Validate what's emitted
   --overwrite             If the file already exists, it's OK to replace it
   --type-import=<url>     The import where the primary TypeScript type definition is found
   --type=<symbol>         The TypeScript symbol that should be assigned the primary type
@@ -227,11 +228,11 @@ export class TypicalController {
       onAfterEmit: (result: udt.StructuredDataTyperResult): void => {
         if (udt.isFileDestinationResult(result)) {
           if (verbose && !dryRun) {
-            console.log(result.destFileName);
+            console.log(result.destFileNameRel(Deno.cwd()));
           }
           if (validate && !dryRun) {
             // deno-lint-ignore no-undef
-            import(result.destFileName);
+            import(result.destFileNameRel(Deno.cwd()));
           }
         }
       },
