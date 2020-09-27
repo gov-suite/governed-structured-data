@@ -227,12 +227,13 @@ export class TypicalController {
       },
       onAfterEmit: (result: udt.StructuredDataTyperResult): void => {
         if (udt.isFileDestinationResult(result)) {
+          const destRel = path.join(".", result.destFileNameRel(Deno.cwd()));
           if (verbose && !dryRun) {
-            console.log(result.destFileNameRel(Deno.cwd()));
+            console.log(destRel);
           }
           if (validate && !dryRun) {
             // deno-lint-ignore no-undef
-            import(result.destFileNameRel(Deno.cwd()));
+            import(destRel);
           }
         }
       },
