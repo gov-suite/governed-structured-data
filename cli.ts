@@ -1,8 +1,10 @@
-import { common } from "https://deno.land/std@0.71.0/path/common.ts";
-import { docopt, fs, path } from "./deps.ts";
+import { docopt, fs } from "./deps.ts";
 
-const repoVersionRegExp = /medigy\/governance\/v?(?<version>\d+\.\d+\.\d+)\//;
+//TODO: generalize this so it will work for any repo
+const repoVersionRegExp =
+  /gov-suite\/governed-structured-data\/v?(?<version>\d+\.\d+\.\d+)\//;
 
+//TODO: merge this into CommandHandlerContext.version
 export function determineVersion(
   importMetaURL: string,
   isMain?: boolean,
