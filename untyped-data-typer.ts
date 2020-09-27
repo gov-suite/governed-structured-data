@@ -140,6 +140,7 @@ export interface TypicalJsonTyperOptions extends JsonTyperOptions {
   readonly typeImportURL: string;
   readonly typeName: string;
   readonly instanceName: string;
+  readonly emittedFileExtn: string;
 }
 
 export function defaultTypicalJsonTyperOptions(
@@ -149,7 +150,7 @@ export function defaultTypicalJsonTyperOptions(
     Omit<TypicalJsonTyperOptions, "typeImportURL" | "typeName">
   >,
 ): TypicalJsonTyperOptions {
-  const { govnDataImportURL, instanceName } = override;
+  const { govnDataImportURL, instanceName, emittedFileExtn } = override;
   return {
     ...defaultJsonTyperOptions(),
     govnDataImportURL: govnDataImportURL ||
@@ -157,6 +158,7 @@ export function defaultTypicalJsonTyperOptions(
     typeImportURL: typeImportURL, // required
     typeName: typeName, // required
     instanceName: instanceName || "instance",
+    emittedFileExtn: emittedFileExtn || ".auto.ts",
   };
 }
 
@@ -168,12 +170,17 @@ export class TypicalJsonTyper extends JsonTyper {
   typeData(
     ctx: StructuredDataTyperContext,
   ): JsonTyperTextResult {
-    const { govnDataImportURL, typeImportURL, typeName, instanceName } =
-      this.options;
+    const {
+      govnDataImportURL,
+      typeImportURL,
+      typeName,
+      instanceName,
+      emittedFileExtn,
+    } = this.options;
     let textResult, destFileName;
     if (isJsonTyperContext(ctx)) {
       if (uds.isFileContext(ctx.udseCtx)) {
-        destFileName = ctx.udseCtx.forceExtension(".auto.ts");
+        destFileName = ctx.udseCtx.forceExtension(emittedFileExtn);
         textResult = `
         // Generated from ${ctx.udseCtx.fileName}. DO NOT EDIT.
   

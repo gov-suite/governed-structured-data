@@ -1,0 +1,2 @@
+# mod_test.ts generates files as part of testing, don't store those
+*.test-*.auto.ts
