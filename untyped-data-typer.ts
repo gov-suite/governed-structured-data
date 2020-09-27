@@ -57,6 +57,7 @@ export function isTextResult(o: unknown): o is TextResult {
 
 export interface FileDestinationResult {
   readonly destFileName: string;
+  readonly destFileNameRel: (relTo: string) => string;
 }
 
 export function isFileDestinationResult(
@@ -201,7 +202,7 @@ export class TypicalJsonTyper extends JsonTyper {
       instanceName,
       emittedFileExtn,
     } = this.options;
-    let textResult, destFileName;
+    let textResult, destFileName: string | undefined;
     if (isJsonTyperContext(ctx)) {
       if (uds.isFileContext(ctx.udseCtx)) {
         destFileName = ctx.udseCtx.forceExtension(emittedFileExtn);
@@ -233,8 +234,10 @@ export class TypicalJsonTyper extends JsonTyper {
         }
 
         if (import.meta.main) {     
-          new govnData.CliArgsEmitter(import.meta.url, retype)
-            .emitJSON(${instanceName});
+          govnData.CLI(
+            import.meta.url,
+            govnData.defaultTypicalControllerOptions(${instanceName}, { retype: retype }),
+          );
         }`.replaceAll(/^ {8}/gm, ""); // remove indendation
       } else {
         textResult =
@@ -253,6 +256,9 @@ export class TypicalJsonTyper extends JsonTyper {
       const enhanced: JsonTyperTextResult & FileDestinationResult = {
         ...result,
         destFileName: destFileName,
+        destFileNameRel: (relTo: string): string => {
+          return path.relative(destFileName!, relTo);
+        },
       };
       return enhanced;
     }
