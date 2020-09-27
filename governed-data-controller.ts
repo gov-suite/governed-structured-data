@@ -233,6 +233,7 @@ export class TypicalController {
             console.log(destRel);
           }
           if (validate && !dryRun) {
+            console.log(`Trying Deno import(${destRel})...`);
             // deno-lint-ignore no-undef
             import(destRel);
           }
