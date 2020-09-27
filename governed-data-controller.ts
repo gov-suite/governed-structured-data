@@ -227,7 +227,8 @@ export class TypicalController {
       },
       onAfterEmit: (result: udt.StructuredDataTyperResult): void => {
         if (udt.isFileDestinationResult(result)) {
-          const destRel = path.join(".", result.destFileNameRel(Deno.cwd()));
+          // import requires relative paths
+          const destRel = "." + path.SEP + result.destFileNameRel(Deno.cwd());
           if (verbose && !dryRun) {
             console.log(destRel);
           }
