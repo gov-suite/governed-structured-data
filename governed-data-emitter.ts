@@ -1,4 +1,5 @@
 import { path } from "./deps.ts";
+import type * as udt from "./untyped-data-typer.ts";
 
 export const jsonStringifyIndentDefault = 2;
 
@@ -100,6 +101,7 @@ export class FileSystemEmitter implements JsonEmitter {
 export class CliArgsEmitter implements JsonEmitter {
   constructor(
     readonly fromSrcModuleURL: string,
+    readonly retype: udt.JsonRetyper,
     readonly defaultJsonExtn = ".auto.json",
   ) {
   }

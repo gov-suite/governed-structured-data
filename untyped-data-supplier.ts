@@ -1,5 +1,9 @@
 import { fs, path } from "./deps.ts";
 
+export interface UntypedDataProvenance {
+  readonly isUntypedDataProvenance: true;
+}
+
 export interface UntypedDataSupplierEntryContext {
   readonly isUntypedDataSupplierEntryContext: true;
 }
@@ -23,6 +27,15 @@ export function isJsonSupplierEntryContext(
   return "jsonValue" in o;
 }
 
+export interface FileProvenance extends UntypedDataProvenance {
+  readonly isFileProvenance: true;
+  readonly fileName: string;
+  readonly size: number;
+  readonly atime: Date | null;
+  readonly mtime: Date | null;
+  readonly birthtime: Date | null;
+}
+
 export interface FileContext {
   readonly isFileContext: true;
   readonly absFileName: string;
@@ -31,6 +44,7 @@ export interface FileContext {
   readonly fileExtensions: string[];
   readonly lastFileExtn: string;
   readonly forceExtension: (extn: string) => string;
+  readonly provenance: FileProvenance;
 }
 
 export function isFileContext(o: unknown): o is FileContext {
@@ -122,6 +136,7 @@ export class FileSystemGlobSupplier implements UntypedDataSupplier {
       const lastFileExtn = fileExtensions.length > 0
         ? fileExtensions[fileExtensions.length - 1]
         : "";
+      const lstat = Deno.lstatSync(we.path);
       const gweCtx: GlobWalkEntryContext = {
         isFileContext: true,
         fileName: we.name,
@@ -133,6 +148,15 @@ export class FileSystemGlobSupplier implements UntypedDataSupplier {
           return `${
             path.join(path.dirname(we.path), fileNameWithoutExtn)
           }${extn}`;
+        },
+        provenance: {
+          isUntypedDataProvenance: true,
+          isFileProvenance: true,
+          fileName: we.path,
+          size: lstat.size,
+          mtime: lstat.mtime,
+          birthtime: lstat.birthtime,
+          atime: lstat.atime,
         },
         isGlobWalkEntryContext: true,
         walkEntry: we,

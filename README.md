@@ -80,7 +80,7 @@ export interface Expected {
 Here's how we can easily validate it:
 
 ```bash
-deno-run gsdctl.ts json-to-ts untyped-data-typer.test-valid.json.golden --type-import="./json-module.test-schema.ts" --type=Expected --validate
+deno-run gsdctl.ts json-to-ts untyped-data-typer.test-valid.json.golden --type-import="./untyped-data-typer.test-schema.ts" --type=Expected --gsd-import="./mod.ts" --validate && deno fmt
 ```
 
 If you ran the above code on JSON that looks like this, in a file called `invalid.json`:
