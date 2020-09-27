@@ -3,21 +3,24 @@ import * as udt from "./untyped-data-typer.ts";
 import * as uds from "./untyped-data-supplier.ts";
 import * as cli from "./cli.ts";
 
-const $VERSION = cli.determineVersion(import.meta.url);
-const docoptSpec = `
-Governed Data Controller (GDC) ${$VERSION}. 
+export const $GDCTL_VERSION = cli.determineVersion(import.meta.url);
+
+// NOTE: If any changes are made to gdCtlDocoptSpec be sure to make the same changes
+//       to the subset of commands allowed in `gdctl.ts`.docoptSpec.
+export const gdCtlDocoptSpec = `
+Governed Data Controller (GDC) ${$GDCTL_VERSION}. 
 
 The GDC is designed to be "built into" each TypeScript file that is defined as "governed structured data" (a fancy
 way of saying that data is strongly typed). The GDC can take an appropriately governed TypeScript and generate JSON 
 plus do many other common data tasks such as validation and re-typing.
 
 Usage:
-  gdc inspect
-  gdc json emit [<emit-dest>]
-  gdc json sync [--dry-run] [--overwrite]
-  gdc json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--validate] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
-  gdc -h | --help
-  gdc --version
+  gdctl inspect
+  gdctl json emit [<emit-dest>]
+  gdctl json sync [--dry-run] [--overwrite]
+  gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--validate] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
+  gdctl -h | --help
+  gdctl --version
 
 Options:
   <emit-dest>             The name of the file to emit, if it's just ".json" use same name as active file but force extension
@@ -321,7 +324,7 @@ export async function CLI(
   tco: TypicalControllerOptions,
 ): Promise<void> {
   cli.CLI<CliCmdHandlerContext>(
-    docoptSpec,
+    gdCtlDocoptSpec,
     [jsonEmitCliHandler, jsonTyperCliHandler, inspectCliHandler],
     (options: docopt.DocOptions): CliCmdHandlerContext => {
       return new CliCmdHandlerContext(calledFromMetaURL, options, tco);
