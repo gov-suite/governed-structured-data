@@ -121,46 +121,51 @@ export class FileSystemGlobSupplier implements UntypedDataSupplier {
   ) {
   }
 
+  static globWalkEntryContext(we: fs.WalkEntry): GlobWalkEntryContext {
+    const dotPosition = we.name.indexOf(".");
+    const fileNameWithoutExtn = dotPosition === -1
+      ? we.name
+      : we.name.substr(0, dotPosition);
+    const fileExtensions = dotPosition === -1
+      ? []
+      : we.name.substr(dotPosition + 1).split(".");
+    const lastFileExtn = fileExtensions.length > 0
+      ? fileExtensions[fileExtensions.length - 1]
+      : "";
+    const lstat = Deno.lstatSync(we.path);
+    const gweCtx: GlobWalkEntryContext = {
+      isFileContext: true,
+      fileName: we.name,
+      absFileName: we.path,
+      fileNameWithoutExtn: fileNameWithoutExtn,
+      fileExtensions: fileExtensions,
+      lastFileExtn: lastFileExtn,
+      forceExtension(extn: string): string {
+        return `${
+          path.join(path.dirname(we.path), fileNameWithoutExtn)
+        }${extn}`;
+      },
+      provenance: {
+        isUntypedDataProvenance: true,
+        isFileProvenance: true,
+        fileName: we.path,
+        size: lstat.size,
+        mtime: lstat.mtime,
+        birthtime: lstat.birthtime,
+        atime: lstat.atime,
+      },
+      isGlobWalkEntryContext: true,
+      walkEntry: we,
+    };
+    return gweCtx;
+  }
+
   forEach(
     udsCtx: UntypedDataSupplierContext,
   ): void {
     let handled = 0;
     for (const we of fs.expandGlobSync(this.sourceSpec)) {
-      const dotPosition = we.name.indexOf(".");
-      const fileNameWithoutExtn = dotPosition === -1
-        ? we.name
-        : we.name.substr(0, dotPosition);
-      const fileExtensions = dotPosition === -1
-        ? []
-        : we.name.substr(dotPosition + 1).split(".");
-      const lastFileExtn = fileExtensions.length > 0
-        ? fileExtensions[fileExtensions.length - 1]
-        : "";
-      const lstat = Deno.lstatSync(we.path);
-      const gweCtx: GlobWalkEntryContext = {
-        isFileContext: true,
-        fileName: we.name,
-        absFileName: we.path,
-        fileNameWithoutExtn: fileNameWithoutExtn,
-        fileExtensions: fileExtensions,
-        lastFileExtn: lastFileExtn,
-        forceExtension(extn: string): string {
-          return `${
-            path.join(path.dirname(we.path), fileNameWithoutExtn)
-          }${extn}`;
-        },
-        provenance: {
-          isUntypedDataProvenance: true,
-          isFileProvenance: true,
-          fileName: we.path,
-          size: lstat.size,
-          mtime: lstat.mtime,
-          birthtime: lstat.birthtime,
-          atime: lstat.atime,
-        },
-        isGlobWalkEntryContext: true,
-        walkEntry: we,
-      };
+      const gweCtx = FileSystemGlobSupplier.globWalkEntryContext(we);
 
       let guessedCount = 0;
       for (const guesser of this.options.guessers) {
