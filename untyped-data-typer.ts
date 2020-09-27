@@ -235,7 +235,7 @@ export class TypicalJsonTyper extends JsonTyper {
         if (import.meta.main) {     
           new govnData.CliArgsEmitter(import.meta.url, retype)
             .emitJSON(${instanceName});
-        }`;
+        }`.replaceAll(/^ {8}/gm, ""); // remove indendation
       } else {
         textResult =
           `ctx.jseCtx is expected to be a FileContext instance: ${ctx.jseCtx}`;
