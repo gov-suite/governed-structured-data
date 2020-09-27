@@ -1,13 +1,10 @@
-import { path } from "./deps.ts";
-import * as uds from "./untyped-data-supplier.ts";
-
 import {
+  path,
   serializeJS as sjs,
   serializeJsStringify as sjss,
   serializeJsTypes as sjst,
-  fs,
 } from "./deps.ts";
-import { relative } from "https://deno.land/std@0.71.0/path/win32.ts";
+import * as uds from "./untyped-data-supplier.ts";
 
 // deno-lint-ignore no-explicit-any
 function isNumeric(val: any): val is number | string {
@@ -179,7 +176,7 @@ export class TypicalJsonTyper extends JsonTyper {
     super(options);
   }
 
-  retype(provenance: uds.FileProvenance): JsonRetyper {
+  protected retype(provenance: uds.FileProvenance): JsonRetyper {
     return {
       provenance: provenance,
       jsonRetyperOptions: {
@@ -190,6 +187,30 @@ export class TypicalJsonTyper extends JsonTyper {
         emittedFileExtn: this.options.emittedFileExtn,
       },
     };
+  }
+
+  protected typerResult(
+    ctx: StructuredDataTyperContext,
+    textResult: string,
+    destFileName?: string,
+  ): JsonTyperTextResult {
+    const result: JsonTyperTextResult = {
+      isStructuredDataTyperResult: true,
+      isJsonTyperTextResult: true,
+      udseCtx: ctx.udseCtx,
+      text: textResult,
+    };
+    if (destFileName) {
+      const enhanced: JsonTyperTextResult & FileDestinationResult = {
+        ...result,
+        destFileName: destFileName,
+        destFileNameRel: (relTo: string): string => {
+          return path.relative(relTo, destFileName);
+        },
+      };
+      return enhanced;
+    }
+    return result;
   }
 
   typeData(
@@ -246,23 +267,7 @@ export class TypicalJsonTyper extends JsonTyper {
     } else {
       textResult = `ctx is expected to be a JsonTyperContext instance: ${ctx}`;
     }
-    const result: JsonTyperTextResult = {
-      isStructuredDataTyperResult: true,
-      isJsonTyperTextResult: true,
-      udseCtx: ctx.udseCtx,
-      text: textResult,
-    };
-    if (destFileName) {
-      const enhanced: JsonTyperTextResult & FileDestinationResult = {
-        ...result,
-        destFileName: destFileName,
-        destFileNameRel: (relTo: string): string => {
-          return path.relative(destFileName!, relTo);
-        },
-      };
-      return enhanced;
-    }
-    return result;
+    return this.typerResult(ctx, textResult, destFileName);
   }
 }
 

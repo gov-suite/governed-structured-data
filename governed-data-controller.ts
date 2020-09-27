@@ -1,7 +1,7 @@
-import { path, docopt, fs } from "./deps.ts";
-import * as udt from "./untyped-data-typer.ts";
-import * as uds from "./untyped-data-supplier.ts";
 import * as cli from "./cli.ts";
+import { docopt, fs, path } from "./deps.ts";
+import * as uds from "./untyped-data-supplier.ts";
+import * as udt from "./untyped-data-typer.ts";
 
 export const $GDCTL_VERSION = cli.determineVersion(import.meta.url);
 
@@ -30,7 +30,8 @@ Options:
   --type=<symbol>         The TypeScript symbol that should be assigned the primary type
   --instance=<symbol>     The name of the TypeScript instance that should be assigned (default: "instance")
   --gsd-import=<url>      The import where the Governed Structured Data (GSD) library is found
-  --verbose               Be explicit about what's going on
+  --dry-run               Don't perform any actions but be verbose on what might be done
+  --verbose               Be explicit about what's going on (automatically turned on if using --dry-run)
   -h --help               Show this screen
   --version               Show version
 `;
@@ -204,6 +205,12 @@ export class TypicalController {
                 } exists, overwrite not requested, not replacing`,
               );
               return false;
+            } else {
+              if (verbose) {
+                console.log(
+                  `Overwriting: ${result.destFileNameRel(Deno.cwd())}`,
+                );
+              }
             }
           }
         }
@@ -278,8 +285,9 @@ export async function jsonTyperCliHandler(
     ctl.jsonType({
       jsonSrcSpec: jsonSrcSpec?.toString() || "*.json",
       typer: new CliJsonTyper(ctx.cliOptions),
-      verbose: ctx.isVerbose,
+      verbose: ctx.isVerbose || ctx.isDryRun,
       validate: validate ? true : false,
+      overwrite: ctx.shouldOverwrite,
     });
     return true;
   }
