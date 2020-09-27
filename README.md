@@ -47,7 +47,7 @@ deno run -A my-data.ts
 It's even more powerful when the source data is at another location:
 
 ```
-deno run -A https://raw.githubusercontent.com/shah/tsd-typed-data-gen/master/test-data.gsd.ts local-file.auto.json
+deno run -A https://raw.githubusercontent.com/org/remote/master/test-data.gsd.ts local-file.auto.json
 ```
 
 Or, you can have it default it to a regular file with the same name at the same location if it's on the local file system (note that there's a space between the `my-data.ts` and .json CLI argument):
