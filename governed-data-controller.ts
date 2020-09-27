@@ -133,6 +133,61 @@ export class FileSystemEmitter implements JsonEmitter {
   }
 }
 
+export function shouldEmitIfNotDryRun(
+  dryRun: boolean,
+): ((
+  result: udt.StructuredDataTyperResult,
+) => boolean) {
+  return (result: udt.StructuredDataTyperResult): boolean => {
+    if (dryRun) {
+      if (udt.isFileDestinationResult(result)) {
+        console.log(result.destFileNameRel(Deno.cwd()));
+      }
+      return false;
+    }
+
+    return true;
+  };
+}
+
+export function shouldEmitCheckOverwriteAndNotDryRun(
+  allowOverwrite: boolean,
+  dryRun: boolean,
+  verbose: boolean,
+): ((
+  result: udt.StructuredDataTyperResult,
+) => boolean) {
+  return (result: udt.StructuredDataTyperResult): boolean => {
+    if (udt.isFileDestinationResult(result)) {
+      if (fs.existsSync(result.destFileName)) {
+        if (!allowOverwrite) {
+          console.warn(
+            `[GSDC-01-000] ${
+              result.destFileNameRel(Deno.cwd())
+            } exists, overwrite not requested, not replacing`,
+          );
+          return false;
+        } else {
+          if (verbose) {
+            console.log(
+              `Overwriting: ${result.destFileNameRel(Deno.cwd())}`,
+            );
+          }
+        }
+      }
+    }
+
+    if (dryRun) {
+      if (udt.isFileDestinationResult(result)) {
+        console.log(result.destFileNameRel(Deno.cwd()));
+      }
+      return false;
+    }
+
+    return true;
+  };
+}
+
 export interface TypicalControllerOptions {
   readonly dataInstance: unknown;
   readonly retype?: udt.JsonRetyper;
@@ -195,35 +250,11 @@ export class TypicalController {
     const emitter = new udt.TypedDataFileSystemEmitter([typer]);
     emitter.emitTypedData({
       udSupplier: new uds.FileSystemGlobSupplier(jsonSrcSpec),
-      shouldEmit: (result: udt.StructuredDataTyperResult): boolean => {
-        if (udt.isFileDestinationResult(result)) {
-          if (fs.existsSync(result.destFileName)) {
-            if (!overwrite) {
-              console.warn(
-                `[GSDC-01-000] ${
-                  result.destFileNameRel(Deno.cwd())
-                } exists, overwrite not requested, not replacing`,
-              );
-              return false;
-            } else {
-              if (verbose) {
-                console.log(
-                  `Overwriting: ${result.destFileNameRel(Deno.cwd())}`,
-                );
-              }
-            }
-          }
-        }
-
-        if (dryRun) {
-          if (udt.isFileDestinationResult(result)) {
-            console.log(result.destFileNameRel(Deno.cwd()));
-          }
-          return false;
-        }
-
-        return true;
-      },
+      shouldEmit: shouldEmitCheckOverwriteAndNotDryRun(
+        overwrite || false,
+        dryRun || false,
+        verbose || false,
+      ),
       onAfterEmit: (result: udt.StructuredDataTyperResult): void => {
         if (udt.isFileDestinationResult(result)) {
           const destRel = "." + path.SEP + result.destFileNameRel(Deno.cwd());
