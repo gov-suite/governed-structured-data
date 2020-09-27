@@ -68,8 +68,7 @@ deno run -A my-data.ts another-name.json
 
 Sometimes the source JSON cannot be modified but we want to verify that JSON content matches a TypeScript Schema. The GSD library allows for what we call a "JSON Module".
 
-Assume we want to verify that a JSON file matches the following interface,
-in a file called `json-module.test-schema.ts`:
+Assume we want to verify that a JSON file matches the following interface, in a file called `json-module.test-schema.ts`:
 
 ```typescript
 export interface Expected {
@@ -81,40 +80,10 @@ export interface Expected {
 Here's how we can easily validate it:
 
 ```bash
-deno-run gsdctl json-to-ts json-module.test-valid.json.golden --type-import="./json-module.test-schema.ts" --type=Expected 
+deno-run gsdctl.ts json-to-ts untyped-data-typer.test-valid.json.golden --type-import="./json-module.test-schema.ts" --type=Expected --validate
 ```
 
-
-```typescript
-const validJsonModule = new JsonModule(
-  {
-    imports: [
-      {
-        denoCompilerSrcKey: "/json-module.test-schema.ts",
-        typeScriptImportRef:
-          `import type * as mod from "./json-module.test-schema.ts"`,
-        importedRefSourceCode: new mod.TextFileSourceCode(
-          "./json-module.test-schema.ts",
-        ),
-      },
-    ],
-    moduleName: "invalid.auto.ts",
-    jsonContentFileName: "invalid.json",
-    primaryConstName: "expected",
-    primaryConstTsType: "mod.Expected",
-  },
-);
-
-const tsSrcDiagnostics = await validJsonModule.validate();
-if(tsSrcDiagnostics) {
-  // if validate returns diagnostics it means the JSON file does not
-  // match our expected interface. 
-  console.log(Deno.formatDiagnostics(tsSrcDiagnostics));
-}
-```
-
-If you ran the above code on JSON that looks like this, in a file called
-`invalid.json`:
+If you ran the above code on JSON that looks like this, in a file called `invalid.json`:
 
 ```json
 {
@@ -137,17 +106,24 @@ You would see this error:
         at /json-module.test-schema.ts:3:12
 ```
 
-The way the error is generated is that the GSD JSON Module library simply creates a dynamic TypeScript file, compiles it, and shows the resulting errors. Here's what the interim `*.ts` file looks like:
+The way the error is generated is that the GSD JSON Module library simply creates a dynamic TypeScript file, compiles it, and shows the resulting errors. Here's what the generated `*.ts` file looks like:
 
 ```typescript
+// Generated from untyped-data-typer.test-valid.json.golden. DO NOT EDIT.
+
+import * as govnData from "https://denopkg.com/gov-suite/governed-structured-data/mod.ts";
 import type * as mod from "./json-module.test-schema.ts";
 
-export const expected: mod.Expected = {
-  text: 'text value',
-  numeric: 'bad number'
+export const instance: mod.Expected = {
+  text: "text value",
+  numeric: 45,
 };
 
-export default expected;
+export default instance;
+
+if (import.meta.main) {
+  new govnData.CliArgsEmitter(import.meta.url).emitJSON(instance);
+}
 ```
 
 The JSON Modules feature allows you to use the full power of TypeScript to validate a JSON file against a verifiable structure instead of having to rely on less reliable strategies such as JSON Schema.

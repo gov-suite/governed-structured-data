@@ -1,2 +1,5 @@
+# This is generated when testing using gsdctl.ts
+untyped-data-typer.auto.ts
+
 # mod_test.ts generates files as part of testing, don't store those
 *.test-*.auto.ts
