@@ -249,9 +249,7 @@ export class TypicalJsonTyper extends JsonTyper {
         //   ${retype.provenance.fileName}
         //   ${retype.provenance.mtime}, ${retype.provenance.size} bytes
 
-        export const ${instanceName}: mod.${typeName} = ${
-          this.stringifyJSON(ctx)
-        };
+        export const ${instanceName}: ${typeName} = ${this.stringifyJSON(ctx)};
     
         export default ${instanceName};
     
