@@ -2,6 +2,7 @@ import { testingAsserts as ta } from "./deps-test.ts";
 import { path } from "./deps.ts";
 import * as mod from "./mod.ts";
 import gdcTestData from "./governed-data-controller.test.gsd.ts";
+
 const testPath = path.relative(
   Deno.cwd(),
   path.dirname(import.meta.url).substr("file://".length),
@@ -49,7 +50,7 @@ export class TestJsonTyper extends mod.TypicalJsonTyper {
   constructor(forceExtn: string) {
     super(mod.defaultTypicalJsonTyperOptions(
       "./untyped-data-typer.test-schema.ts",
-      "Expected",
+      "mod.Expected",
       {
         govnDataImportURL: "./mod.ts",
         emittedFileExtn: forceExtn,
@@ -74,7 +75,6 @@ Deno.test(`${TestJsonTyper.validTestFileName} generates valid TypeScript`, async
       }
     },
   });
-  // deno-lint-ignore no-undef
   ta.assert(await import(emittedFileName!));
 });
 
@@ -96,7 +96,6 @@ Deno.test(`${TestJsonTyper.invalidTestFileName} generates invalid TypeScript`, a
   });
   ta.assertThrowsAsync(
     async () => {
-      // deno-lint-ignore no-undef
       await import(emittedFileName!);
     },
     undefined,
