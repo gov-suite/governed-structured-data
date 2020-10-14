@@ -17,7 +17,6 @@ plus do many other common data tasks such as validation and re-typing.
 Usage:
   gdctl provenance
   gdctl json emit [<emit-dest>]
-  gdctl json sync [--dry-run] [--overwrite]
   gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
   gdctl -h | --help
   gdctl --version
