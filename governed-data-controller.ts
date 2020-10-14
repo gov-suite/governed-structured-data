@@ -15,7 +15,7 @@ way of saying that data is strongly typed). The GDC can take an appropriately go
 plus do many other common data tasks such as validation and re-typing.
 
 Usage:
-  gdctl inspect
+  gdctl provenance
   gdctl json emit [<emit-dest>]
   gdctl json sync [--dry-run] [--overwrite]
   gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
@@ -191,7 +191,7 @@ export function shouldEmitCheckOverwriteAndNotDryRun(
 export interface TypicalControllerOptions {
   readonly dataInstance: unknown;
   readonly retype?: udt.JsonRetyper;
-  readonly inspectInstance: () => unknown;
+  readonly retypeInstance: () => unknown;
   readonly defaultJsonExtn: string;
   readonly onAfterEmit?: (result: udt.StructuredDataTyperResult) => void;
 }
@@ -200,16 +200,16 @@ export function defaultTypicalControllerOptions(
   dataInstance: unknown,
   override?: Partial<TypicalControllerOptions>,
 ): TypicalControllerOptions {
-  const retypeInspector = override?.retype
+  const retyper = override?.retype
     ? ((): unknown => {
       return override.retype;
     })
     : undefined;
   return {
     dataInstance: dataInstance,
-    inspectInstance: override?.inspectInstance || retypeInspector ||
+    retypeInstance: override?.retypeInstance || retyper ||
       ((): string => {
-        return "[GSDC-00-100] No inspection content available.";
+        return "[GSDC-00-100] No retype instance content available.";
       }),
     defaultJsonExtn: override?.defaultJsonExtn || ".auto.json",
     onAfterEmit: override?.onAfterEmit,
@@ -290,12 +290,12 @@ export class CliJsonTyper extends udt.TypicalJsonTyper {
   }
 }
 
-export async function inspectCliHandler(
+export async function provenanceCliHandler(
   ctx: CliCmdHandlerContext,
 ): Promise<true | void> {
-  const { "inspect": inspect } = ctx.cliOptions;
-  if (inspect) {
-    console.dir(ctx.tco.inspectInstance());
+  const { "provenance": provenance } = ctx.cliOptions;
+  if (provenance) {
+    console.dir(ctx.tco.retypeInstance());
     return true;
   }
 }
@@ -360,7 +360,7 @@ export async function CLI(
 ): Promise<void> {
   cli.CLI<CliCmdHandlerContext>(
     gdCtlDocoptSpec,
-    [jsonEmitCliHandler, jsonTyperCliHandler, inspectCliHandler],
+    [jsonEmitCliHandler, jsonTyperCliHandler, provenanceCliHandler],
     (options: docopt.DocOptions): CliCmdHandlerContext => {
       return new CliCmdHandlerContext(calledFromMetaURL, options, tco);
     },
