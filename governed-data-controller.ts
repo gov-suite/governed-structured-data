@@ -1,5 +1,5 @@
 import * as cli from "./cli.ts";
-import { docopt, fs, path } from "./deps.ts";
+import { docopt, fs, inspect as insp, path } from "./deps.ts";
 import * as uds from "./untyped-data-supplier.ts";
 import * as udt from "./untyped-data-typer.ts";
 
@@ -16,6 +16,7 @@ plus do many other common data tasks such as validation and re-typing.
 
 Usage:
   gdctl provenance
+  gdctl inspect
   gdctl json emit [<emit-dest>]
   gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
   gdctl -h | --help
@@ -189,6 +190,7 @@ export function shouldEmitCheckOverwriteAndNotDryRun(
 
 export interface TypicalControllerOptions {
   readonly dataInstance: unknown;
+  readonly dataInspector?: () => Promise<void>;
   readonly retype?: udt.JsonRetyper;
   readonly retypeInstance: () => unknown;
   readonly defaultJsonExtn: string;
@@ -206,6 +208,7 @@ export function defaultTypicalControllerOptions(
     : undefined;
   return {
     dataInstance: dataInstance,
+    dataInspector: override?.dataInspector,
     retypeInstance: override?.retypeInstance || retyper ||
       ((): string => {
         return "[GSDC-00-100] No retype instance content available.";
@@ -265,6 +268,14 @@ export class TypicalController {
       },
     });
   }
+
+  async inspect(): Promise<void> {
+    if (this.options.dataInspector) {
+      await this.options.dataInspector();
+    } else {
+      console.error("No dataInspector() supplied.");
+    }
+  }
 }
 
 export class CliJsonTyper extends udt.TypicalJsonTyper {
@@ -295,6 +306,20 @@ export async function provenanceCliHandler(
   const { "provenance": provenance } = ctx.cliOptions;
   if (provenance) {
     console.dir(ctx.tco.retypeInstance());
+    return true;
+  }
+}
+
+export async function inspectCliHandler(
+  ctx: CliCmdHandlerContext,
+): Promise<true | void> {
+  const { "inspect": inspect } = ctx.cliOptions;
+  if (inspect) {
+    const ctl = new TypicalController(
+      ctx.calledFromMetaURL,
+      ctx.tco,
+    );
+    await ctl.inspect();
     return true;
   }
 }
@@ -359,7 +384,12 @@ export async function CLI(
 ): Promise<void> {
   cli.CLI<CliCmdHandlerContext>(
     gdCtlDocoptSpec,
-    [jsonEmitCliHandler, jsonTyperCliHandler, provenanceCliHandler],
+    [
+      jsonEmitCliHandler,
+      jsonTyperCliHandler,
+      provenanceCliHandler,
+      inspectCliHandler,
+    ],
     (options: docopt.DocOptions): CliCmdHandlerContext => {
       return new CliCmdHandlerContext(calledFromMetaURL, options, tco);
     },

@@ -144,6 +144,7 @@ export interface TypicalJsonTyperOptions extends JsonTyperOptions {
   readonly typeImportURL: string | string[];
   readonly typeName: string;
   readonly instanceName: string;
+  readonly inspectorPropertyTS: string;
   readonly emittedFileExtn: string;
 }
 
@@ -154,7 +155,12 @@ export function defaultTypicalJsonTyperOptions(
     Omit<TypicalJsonTyperOptions, "typeImportURL" | "typeName">
   >,
 ): TypicalJsonTyperOptions {
-  const { govnDataImportURL, instanceName, emittedFileExtn } = override;
+  const {
+    govnDataImportURL,
+    instanceName,
+    emittedFileExtn,
+    inspectorPropertyTS,
+  } = override;
   return {
     ...defaultJsonTyperOptions(),
     govnDataImportURL: govnDataImportURL ||
@@ -162,6 +168,7 @@ export function defaultTypicalJsonTyperOptions(
     typeImportURL: typeImportURL, // required
     typeName: typeName, // required
     instanceName: instanceName || "instance",
+    inspectorPropertyTS: inspectorPropertyTS || "dataInspector: undefined",
     emittedFileExtn: emittedFileExtn || ".auto.ts",
   };
 }
@@ -222,6 +229,7 @@ export class TypicalJsonTyper extends JsonTyper {
       typeName,
       instanceName,
       emittedFileExtn,
+      inspectorPropertyTS,
     } = this.options;
     let textResult, destFileName: string | undefined;
     if (isJsonTyperContext(ctx)) {
@@ -260,7 +268,7 @@ export class TypicalJsonTyper extends JsonTyper {
         if (import.meta.main) {     
           govnData.CLI(
             import.meta.url,
-            govnData.defaultTypicalControllerOptions(${instanceName}, { retype: retype }),
+            govnData.defaultTypicalControllerOptions(${instanceName}, { retype: retype, ${inspectorPropertyTS} }),
           );
         }`.replaceAll(/^ {8}/gm, ""); // remove indendation
       } else {
