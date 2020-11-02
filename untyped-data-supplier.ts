@@ -47,13 +47,17 @@ export interface FileContext {
   readonly provenance: FileProvenance;
 }
 
+export function isFileContext(o: unknown): o is FileContext {
+  return o && typeof o === "object" && "isFileContext" in o;
+}
+
 export interface BufferProvenance extends UntypedDataProvenance {
   readonly isBufferProvenance: true;
   readonly bufferIdentity?: string;
 }
 
-export function isFileContext(o: unknown): o is FileContext {
-  return o && typeof o === "object" && "isFileContext" in o;
+export function isBufferContext(o: unknown): o is BufferProvenance {
+  return o && typeof o === "object" && "isBufferProvenance" in o;
 }
 
 export interface UntypedDataSupplierEntryContextGuesser {
@@ -62,6 +66,7 @@ export interface UntypedDataSupplierEntryContextGuesser {
   ) => UntypedDataSupplierEntryContext | undefined;
   guessFromBuffer(
     buffer: Uint8Array,
+    identity?: string,
   ): UntypedDataSupplierEntryContext | undefined;
 }
 
@@ -217,22 +222,26 @@ export class FileSystemGlobSupplier implements UntypedDataSupplier {
   }
 }
 
-export interface StdInSupplierOptions {
-  readonly continuous: boolean;
+export interface BufferSupplierOptions {
+  readonly identity: string;
   readonly guessers: UntypedDataSupplierEntryContextGuesser[];
+  readonly noContentAvailable: () => void;
   readonly onNoGuesses: (
     buffer: Uint8Array,
   ) => UntypedDataSupplierEntryContext | undefined;
 }
 
-export function defaultStdInSupplierOptions(
-  continuous?: boolean,
-): StdInSupplierOptions {
+export function defaultBufferSupplierOptions(
+  identity?: string,
+): BufferSupplierOptions {
   return {
-    continuous: continuous || false,
+    identity: identity || "buffer",
     guessers: [
       JsonSupplierEntryContextGuesser.singleton,
     ],
+    noContentAvailable: (): void => {
+      console.log(`No content available in ${identity}`);
+    },
     onNoGuesses: (
       buffer: Uint8Array,
     ): UntypedDataSupplierEntryContext | undefined => {
@@ -241,23 +250,24 @@ export function defaultStdInSupplierOptions(
   };
 }
 
-export class StdInSupplier implements UntypedDataSupplier {
+export class BufferSupplier implements UntypedDataSupplier {
   readonly isUntypedDataSupplier = true;
   readonly isJsonSupplier = true;
 
   constructor(
-    readonly sourceSpec: string,
-    readonly options: StdInSupplierOptions = defaultStdInSupplierOptions(),
+    readonly buffer: Uint8Array,
+    readonly options = defaultBufferSupplierOptions(),
   ) {
   }
 
   forEach(udsCtx: UntypedDataSupplierContext): void {
-    while (true) {
-      const stdinContent = Deno.readAllSync(Deno.stdin);
-
+    if (this.buffer.length > 0) {
       let guessedCount = 0;
       for (const guesser of this.options.guessers) {
-        const guessed = guesser.guessFromBuffer(stdinContent);
+        const guessed = guesser.guessFromBuffer(
+          this.buffer,
+          this.options.identity,
+        );
         if (guessed) {
           udsCtx.onEntry(guessed);
           guessedCount++;
@@ -265,15 +275,15 @@ export class StdInSupplier implements UntypedDataSupplier {
       }
 
       if (guessedCount == 0 && this.options.onNoGuesses) {
-        const defaultHandler = this.options.onNoGuesses(stdinContent);
+        const defaultHandler = this.options.onNoGuesses(this.buffer);
         if (defaultHandler) {
           udsCtx.onEntry(defaultHandler);
         } else {
           console.log(`Unable to handle STDIN buffer`);
         }
       }
-
-      if (!this.options.continuous) break;
+    } else {
+      this.options.noContentAvailable();
     }
   }
 }
