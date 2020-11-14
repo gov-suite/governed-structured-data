@@ -10,7 +10,7 @@ import * as govnData from "./mod.ts";
  * of a governed data TypeScript file.
  */
 export const docoptSpec = `
-Governed Data Controller (GDC) ${govnData.$GDCTL_VERSION}. 
+Governed Data Controller (GDC) ${govnData.gdcVersion}. 
 
 Usage:
   gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--validate] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]

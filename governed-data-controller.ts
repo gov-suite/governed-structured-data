@@ -5,16 +5,20 @@ import {
   encodingYAML as yaml,
   fs,
   path,
+  versionHelper as vh,
 } from "./deps.ts";
 import * as uds from "./untyped-data-supplier.ts";
 import * as udt from "./untyped-data-typer.ts";
 
-export const $GDCTL_VERSION = cli.determineVersion(import.meta.url);
+export const gdcVersion = await vh.determineVersionFromRepoTag(
+  import.meta.url,
+  { repoIdentity: "gov-suite/governed-structured-data" },
+);
 
 // NOTE: If any changes are made to gdCtlDocoptSpec be sure to make the same changes
 //       to the subset of commands allowed in `gdctl.ts`.docoptSpec.
 export const gdCtlDocoptSpec = `
-Governed Data Controller (GDC) ${$GDCTL_VERSION}. 
+Governed Data Controller (GDC) ${gdcVersion}. 
 
 The GDC is designed to be "built into" each TypeScript file that is defined as "governed structured data" (a fancy
 way of saying that data is strongly typed). The GDC can take an appropriately governed TypeScript and generate JSON 

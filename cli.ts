@@ -1,27 +1,5 @@
-import { docopt, fs } from "./deps.ts";
+import { docopt, versionHelper as vh } from "./deps.ts";
 export { docopt } from "./deps.ts";
-
-//TODO: generalize this so it will work for any repo
-const repoVersionRegExp =
-  /gov-suite\/governed-structured-data\/v?(?<version>\d+\.\d+\.\d+)\//;
-
-//TODO: merge this into CommandHandlerContext.version
-export function determineVersion(
-  importMetaURL: string,
-  isMain?: boolean,
-): string {
-  const fileURL = importMetaURL.startsWith("file://")
-    ? importMetaURL.substr("file://".length)
-    : importMetaURL;
-  if (fs.existsSync(fileURL)) {
-    return `v0.0.0-local${isMain ? ".main" : ""}`;
-  }
-  const matched = importMetaURL.match(repoVersionRegExp);
-  if (matched) {
-    return `v${matched.groups!["version"]}`;
-  }
-  return `v0.0.0-remote(no version tag/branch in ${importMetaURL})`;
-}
 
 export interface CommandHandlerContext {
   readonly calledFromMetaURL: string;
@@ -63,7 +41,12 @@ export async function versionHandler(
 ): Promise<true | void> {
   const { "--version": version } = ctx.cliOptions;
   if (version) {
-    console.log(determineVersion(ctx.calledFromMetaURL));
+    console.log(
+      await vh.determineVersionFromRepoTag(
+        ctx.calledFromMetaURL,
+        { repoIdentity: "gov-suite/governed-structured-data" },
+      ),
+    );
     return true;
   }
 }
