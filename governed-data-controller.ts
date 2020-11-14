@@ -553,6 +553,8 @@ export async function CLI(
     gdCtlDocoptSpec,
     [
       jsonEmitCliHandler,
+      tomlEmitCliHandler,
+      yamlEmitCliHandler,
       jsonTyperCliHandler,
       provenanceCliHandler,
       inspectCliHandler,
