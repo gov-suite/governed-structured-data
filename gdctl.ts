@@ -6,7 +6,7 @@ import * as govnData from "./mod.ts";
  * This docOptSpec should be a subset of govnData.gdCtlDocoptSpec only allowing commands
  * that do not require an active "instance" context. govnData.gdCtlDocoptSpec is designed
  * to be called in the context of a governed structure data instance TypeScript file but 
- * the one belowis designed to be called without that context since it allows the creation
+ * the one below is designed to be called without that context since it allows the creation
  * of a governed data TypeScript file.
  */
 export const docoptSpec = `

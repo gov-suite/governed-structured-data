@@ -11,8 +11,14 @@ const testPath = path.relative(
 const expectedEmitterJsonFileName =
   "governed-data-controller.test.auto.json.golden";
 
-const emitFileName = path.join(testPath, "mod_test.auto.json");
-Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitFileName}`, async () => {
+const expectedEmitterTomlFileName =
+  "governed-data-controller.test.auto.toml.golden";
+
+const expectedEmitterYamlFileName =
+  "governed-data-controller.test.auto.yaml.golden";
+
+const emitJsonFileName = path.join(testPath, "mod_test.auto.json");
+Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitJsonFileName}`, async () => {
   const ctx = new mod.CliCmdHandlerContext(
     import.meta.url,
     {
@@ -27,7 +33,51 @@ Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitFileName}`, async 
   ta.assert(typeof writtenToFile === "string");
   ta.assertEquals(
     Deno.readTextFileSync(expectedEmitterJsonFileName),
-    Deno.readTextFileSync(emitFileName),
+    Deno.readTextFileSync(emitJsonFileName),
+  );
+  // if we get to here, the assertion passed so remove the generated file
+  Deno.removeSync(writtenToFile);
+});
+
+const emitTomlFileName = path.join(testPath, "mod_test.auto.toml");
+Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitTomlFileName}`, async () => {
+  const ctx = new mod.CliCmdHandlerContext(
+    import.meta.url,
+    {
+      "toml": true,
+      "emit": true,
+      "<emit-dest>": mod.forceExtension(".auto.toml", import.meta.url),
+    },
+    mod.defaultTypicalControllerOptions(gdcTestData),
+  );
+  ta.assert(await mod.tomlEmitCliHandler(ctx));
+  const writtenToFile = ctx.result;
+  ta.assert(typeof writtenToFile === "string");
+  ta.assertEquals(
+    Deno.readTextFileSync(expectedEmitterTomlFileName),
+    Deno.readTextFileSync(emitTomlFileName),
+  );
+  // if we get to here, the assertion passed so remove the generated file
+  Deno.removeSync(writtenToFile);
+});
+
+const emitYamlFileName = path.join(testPath, "mod_test.auto.yaml");
+Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitYamlFileName}`, async () => {
+  const ctx = new mod.CliCmdHandlerContext(
+    import.meta.url,
+    {
+      "yaml": true,
+      "emit": true,
+      "<emit-dest>": mod.forceExtension(".auto.yaml", import.meta.url),
+    },
+    mod.defaultTypicalControllerOptions(gdcTestData),
+  );
+  ta.assert(await mod.yamlEmitCliHandler(ctx));
+  const writtenToFile = ctx.result;
+  ta.assert(typeof writtenToFile === "string");
+  ta.assertEquals(
+    Deno.readTextFileSync(expectedEmitterYamlFileName),
+    Deno.readTextFileSync(emitYamlFileName),
   );
   // if we get to here, the assertion passed so remove the generated file
   Deno.removeSync(writtenToFile);

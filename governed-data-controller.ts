@@ -1,5 +1,11 @@
 import * as cli from "./cli.ts";
-import { docopt, fs, inspect as insp, path } from "./deps.ts";
+import {
+  docopt,
+  encodingTOML as toml,
+  encodingYAML as yaml,
+  fs,
+  path,
+} from "./deps.ts";
 import * as uds from "./untyped-data-supplier.ts";
 import * as udt from "./untyped-data-typer.ts";
 
@@ -18,12 +24,14 @@ Usage:
   gdctl provenance
   gdctl inspect
   gdctl json emit [<emit-dest>]
+  gdctl toml emit [<emit-dest>]
+  gdctl yaml emit [<emit-dest>] [--line-width=<width>] [--indent=<spaces>]
   gdctl json type <json-src> --type-import=<url> --type=<symbol> [--dry-run] [--overwrite] [--instance=<symbol>] [--gsd-import=<url>] [--verbose]
   gdctl -h | --help
   gdctl --version
 
 Options:
-  <emit-dest>             The name of the file to emit, if it's just ".json" use same name as active file but force extension
+  <emit-dest>             The name of the file to emit, if it's just ".json"/".toml"/".yaml" use same name as active file but force extension
   <json-src>              JSON single local file name or glob (like "*.json" or "**/*.json")
   --overwrite             If the file already exists, it's OK to replace it
   --type-import=<url>     The import where the primary TypeScript type definition is found
@@ -61,6 +69,11 @@ export interface JsonPreparer {
 
 export interface JsonStringifier {
   stringifyJSON: (content: unknown | EmittableContent) => string;
+  stringifyTOML: (content: unknown | EmittableContent) => string;
+  stringifyYAML: (
+    content: unknown | EmittableContent,
+    options?: yaml.StringifyOptions,
+  ) => string;
 }
 
 export class TypicalJsonPreparer implements JsonPreparer {
@@ -83,10 +96,49 @@ export class TypicalJsonStringifier implements JsonStringifier {
       ? data
       : JSON.stringify(data, null, jsonStringifyIndentDefault);
   }
+
+  stringifyTOML(content: unknown | EmittableContent): string {
+    const data = this.jp.prepareJSON(content);
+    switch (typeof data) {
+      case "string":
+        return data;
+      case "object":
+        return toml.stringify(data as Record<string, unknown>);
+      case "number":
+      case "boolean":
+      case "bigint":
+      case "symbol":
+        return data.toString();
+      default:
+        return `Unknown content type: ${typeof data}`;
+    }
+  }
+
+  stringifyYAML(
+    content: unknown | EmittableContent,
+    options?: yaml.StringifyOptions,
+  ): string {
+    const data = this.jp.prepareJSON(content);
+    switch (typeof data) {
+      case "string":
+        return data;
+      case "object":
+        return yaml.stringify(data as Record<string, unknown>, options);
+      case "number":
+      case "boolean":
+      case "bigint":
+      case "symbol":
+        return data.toString();
+      default:
+        return `Unknown content type: ${typeof data}`;
+    }
+  }
 }
 
 export interface JsonEmitter {
   emitJSON: (content: unknown | EmittableContent) => unknown;
+  emitTOML: (content: unknown | EmittableContent) => unknown;
+  emitYAML: (content: unknown | EmittableContent) => unknown;
 }
 
 export class StdOutEmitter implements JsonEmitter {
@@ -98,6 +150,17 @@ export class StdOutEmitter implements JsonEmitter {
 
   emitJSON(content: unknown | EmittableContent): void {
     console.log(this.js.stringifyJSON(content));
+  }
+
+  emitTOML(content: unknown | EmittableContent): void {
+    console.log(this.js.stringifyTOML(content));
+  }
+
+  emitYAML(
+    content: unknown | EmittableContent,
+    options?: yaml.StringifyOptions,
+  ): void {
+    console.log(this.js.stringifyYAML(content, options));
   }
 }
 
@@ -111,6 +174,17 @@ export class TextEmitter implements JsonEmitter {
   emitJSON(content: unknown | EmittableContent): string {
     return this.js.stringifyJSON(content);
   }
+
+  emitTOML(content: unknown | EmittableContent): string {
+    return this.js.stringifyTOML(content);
+  }
+
+  emitYAML(
+    content: unknown | EmittableContent,
+    options?: yaml.StringifyOptions,
+  ): string {
+    return this.js.stringifyYAML(content, options);
+  }
 }
 
 export class FileSystemEmitter implements JsonEmitter {
@@ -122,6 +196,33 @@ export class FileSystemEmitter implements JsonEmitter {
 
   emitJSON(content: unknown | EmittableContent): string {
     const jsonText = this.js.stringifyJSON(content);
+    const writeFileDest = typeof this.destFileName === "function"
+      ? this.destFileName(this)
+      : this.destFileName;
+    Deno.writeFileSync(
+      writeFileDest,
+      new TextEncoder().encode(jsonText),
+    );
+    return writeFileDest;
+  }
+
+  emitTOML(content: unknown | EmittableContent): string {
+    const jsonText = this.js.stringifyTOML(content);
+    const writeFileDest = typeof this.destFileName === "function"
+      ? this.destFileName(this)
+      : this.destFileName;
+    Deno.writeFileSync(
+      writeFileDest,
+      new TextEncoder().encode(jsonText),
+    );
+    return writeFileDest;
+  }
+
+  emitYAML(
+    content: unknown | EmittableContent,
+    options?: yaml.StringifyOptions,
+  ): string {
+    const jsonText = this.js.stringifyYAML(content, options);
     const writeFileDest = typeof this.destFileName === "function"
       ? this.destFileName(this)
       : this.destFileName;
@@ -240,6 +341,39 @@ export class TypicalController {
     return new FileSystemEmitter(emitDest).emitJSON(this.options.dataInstance);
   }
 
+  tomlEmit(emitDest?: string): string | void {
+    if (!emitDest) {
+      StdOutEmitter.singleton.emitTOML(this.options.dataInstance);
+      return;
+    }
+
+    if (emitDest == ".toml") {
+      return new FileSystemEmitter(
+        forceExtension(this.options.defaultJsonExtn, this.fromSrcModuleURL),
+      ).emitTOML(this.options.dataInstance);
+    }
+
+    return new FileSystemEmitter(emitDest).emitTOML(this.options.dataInstance);
+  }
+
+  yamlEmit(emitDest?: string, options?: yaml.StringifyOptions): string | void {
+    if (!emitDest) {
+      StdOutEmitter.singleton.emitYAML(this.options.dataInstance, options);
+      return;
+    }
+
+    if (emitDest == ".yaml" || emitDest == ".yml") {
+      return new FileSystemEmitter(
+        forceExtension(this.options.defaultJsonExtn, this.fromSrcModuleURL),
+      ).emitYAML(this.options.dataInstance, options);
+    }
+
+    return new FileSystemEmitter(emitDest).emitYAML(
+      this.options.dataInstance,
+      options,
+    );
+  }
+
   jsonType(
     { verbose, jsonSrcSpec, typer, dryRun, overwrite }: {
       jsonSrcSpec: string;
@@ -354,6 +488,39 @@ export async function jsonEmitCliHandler(
       ctx.tco,
     );
     ctx.result = ctl.jsonEmit(dest ? dest.toString() : undefined);
+    return true;
+  }
+}
+
+export async function tomlEmitCliHandler(
+  ctx: CliCmdHandlerContext,
+): Promise<true | void> {
+  const { "toml": json, "emit": emit, "<emit-dest>": dest } = ctx.cliOptions;
+  if (json && emit) {
+    const ctl = new TypicalController(
+      ctx.calledFromMetaURL,
+      ctx.tco,
+    );
+    ctx.result = ctl.tomlEmit(dest ? dest.toString() : undefined);
+    return true;
+  }
+}
+
+export async function yamlEmitCliHandler(
+  ctx: CliCmdHandlerContext,
+): Promise<true | void> {
+  const { "yaml": json, "emit": emit, "<emit-dest>": dest } = ctx.cliOptions;
+  if (json && emit) {
+    const ctl = new TypicalController(
+      ctx.calledFromMetaURL,
+      ctx.tco,
+    );
+    const { "--line-width": lineWidth, "indent": indent } = ctx.cliOptions;
+    const options: yaml.StringifyOptions = {
+      lineWidth: typeof lineWidth === "number" ? lineWidth : 120,
+      indent: typeof indent === "number" ? indent : 2,
+    };
+    ctx.result = ctl.yamlEmit(dest ? dest.toString() : undefined, options);
     return true;
   }
 }
