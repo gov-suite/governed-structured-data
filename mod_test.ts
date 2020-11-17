@@ -152,3 +152,13 @@ Deno.test(`${TestJsonTyper.invalidTestFileName} generates invalid TypeScript`, a
     "TS2322 [ERROR]: Type 'string' is not assignable to type 'number'",
   );
 });
+
+Deno.test("deep merge", () => {
+  const expected = { a: 1, b: { x: "y", c: { d: { e: 12345 } } } };
+  const merged = mod.mergeDeep(
+    { a: 1 },
+    { b: { x: "y" } },
+    { b: { c: { d: { e: 12345 } } } },
+  );
+  ta.assertEquals(merged, expected);
+});
