@@ -36,7 +36,7 @@ Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitJsonFileName}`, as
     Deno.readTextFileSync(emitJsonFileName),
   );
   // if we get to here, the assertion passed so remove the generated file
-  Deno.removeSync(writtenToFile);
+  Deno.removeSync(writtenToFile as string);
 });
 
 const emitTomlFileName = path.join(testPath, "mod_test.auto.toml");
@@ -58,7 +58,7 @@ Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitTomlFileName}`, as
     Deno.readTextFileSync(emitTomlFileName),
   );
   // if we get to here, the assertion passed so remove the generated file
-  Deno.removeSync(writtenToFile);
+  Deno.removeSync(writtenToFile as string);
 });
 
 const emitYamlFileName = path.join(testPath, "mod_test.auto.yaml");
@@ -80,10 +80,10 @@ Deno.test(`./governed-data-controller.test.gsd.ts emits ${emitYamlFileName}`, as
     Deno.readTextFileSync(emitYamlFileName),
   );
   // if we get to here, the assertion passed so remove the generated file
-  Deno.removeSync(writtenToFile);
+  Deno.removeSync(writtenToFile as string);
 });
 
-Deno.test(`./governed-data-controller.test.gsd.ts emits text`, async () => {
+Deno.test(`./governed-data-controller.test.gsd.ts emits text`, () => {
   const generator = new mod.TextEmitter();
   const emittedSrcText = generator.emitJSON(gdcTestData);
 
@@ -128,7 +128,7 @@ Deno.test(`${TestJsonTyper.validTestFileName} generates valid TypeScript`, async
   ta.assert(await import(emittedFileName!));
 });
 
-Deno.test(`${TestJsonTyper.invalidTestFileName} generates invalid TypeScript`, async () => {
+Deno.test(`${TestJsonTyper.invalidTestFileName} generates invalid TypeScript`, () => {
   const typer = new TestJsonTyper(".test-invalid.auto.ts");
   const emitter = new mod.TypedDataFileSystemEmitter([typer]);
   let emittedFileName: string;
