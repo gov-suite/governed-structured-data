@@ -1,7 +1,8 @@
 export function isDeepMergeableObject(
   o: unknown,
 ): o is Record<string, unknown> {
-  return (o && typeof o === "object" && !Array.isArray(o));
+  if (o && typeof o === "object") return !Array.isArray(o);
+  return false;
 }
 
 export function mergeDeep(target: unknown, ...sources: unknown[]): unknown {

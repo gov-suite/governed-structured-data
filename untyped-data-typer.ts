@@ -1,5 +1,6 @@
 import {
   path,
+  safety,
   serializeJS as sjs,
   serializeJsStringify as sjss,
   serializeJsTypes as sjst,
@@ -48,20 +49,16 @@ export interface TextResult {
   readonly text: string;
 }
 
-export function isTextResult(o: unknown): o is TextResult {
-  return o && typeof o === "object" && "text" in o;
-}
+export const isTextResult = safety.typeGuard<TextResult>("text");
 
 export interface FileDestinationResult {
   readonly destFileName: string;
   readonly destFileNameRel: (relTo: string) => string;
 }
 
-export function isFileDestinationResult(
-  o: unknown,
-): o is FileDestinationResult {
-  return o && typeof o === "object" && "destFileName" in o;
-}
+export const isFileDestinationResult = safety.typeGuard<FileDestinationResult>(
+  "destFileName",
+);
 
 export interface StructuredDataTyper {
   isTypeable: (

@@ -1,4 +1,4 @@
-import { fs, path } from "./deps.ts";
+import { fs, path, safety } from "./deps.ts";
 
 export interface UntypedDataProvenance {
   readonly isUntypedDataProvenance: true;
@@ -47,18 +47,16 @@ export interface FileContext {
   readonly provenance: FileProvenance;
 }
 
-export function isFileContext(o: unknown): o is FileContext {
-  return o && typeof o === "object" && "isFileContext" in o;
-}
+export const isFileContext = safety.typeGuard<FileContext>("isFileContext");
 
 export interface BufferProvenance extends UntypedDataProvenance {
   readonly isBufferProvenance: true;
   readonly bufferIdentity?: string;
 }
 
-export function isBufferContext(o: unknown): o is BufferProvenance {
-  return o && typeof o === "object" && "isBufferProvenance" in o;
-}
+export const isBufferContext = safety.typeGuard<BufferProvenance>(
+  "isBufferProvenance",
+);
 
 export interface UntypedDataSupplierEntryContextGuesser {
   guessFromFile: (
@@ -114,9 +112,9 @@ export interface GlobWalkEntryContext extends FileContext {
   readonly walkEntry: fs.WalkEntry;
 }
 
-export function isGlobWalkEntryContext(o: unknown): o is GlobWalkEntryContext {
-  return o && typeof o === "object" && "isGlobWalkEntryContext" in o;
-}
+export const isGlobWalkEntryContext = safety.typeGuard<GlobWalkEntryContext>(
+  "isGlobWalkEntryContext",
+);
 
 export interface FileSystemGlobSupplierOptions {
   guessers: UntypedDataSupplierEntryContextGuesser[];
